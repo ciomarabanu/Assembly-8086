@@ -8,33 +8,33 @@ include fisio.h
 .stack 80h
 
 .data
-	input_file db 100 dup (?) ; will hold input file name 
-	output_file db 100 dup (?) ; will hold output file name
-	hand_in dw ? ; input file handler 
-	hand_out dw ? ; output file handler
-	buf dw 16 dup(2) ; reading and writing from file buffer
-	rez_in dw ? ; result for open in_file macro
-	rez_out dw ? ; result for open out_file macro
-	OctCit dw ? ; read bytes
-	OctScr dw ? ; written bytes 
+    input_file db 100 dup (?) ; will hold input file name 
+    output_file db 100 dup (?) ; will hold output file name
+    hand_in dw ? ; input file handler 
+    hand_out dw ? ; output file handler
+    buf dw 16 dup(2) ; reading and writing from file buffer
+    rez_in dw ? ; result for open in_file macro
+    rez_out dw ? ; result for open out_file macro
+    OctCit dw ? ; read bytes
+    OctScr dw ? ; written bytes 
     OctDeCit dw 3
     OctDeScr dw 4
     padding dw 0
     is_final_loop dw 1
     
-	flag_encoding dw 652Dh ; "e-" in the registers the values will be inversed
-	flag_decoding dw 642Dh ; "d-"
-	flag_error db 'The flag can be -e for encoding or -d for decoding','$'
-	eror_in db 'INPUT file error! Check if the file exists or the filename is correct. Or check the flag!', 13,10,'$'
+    flag_encoding dw 652Dh ; "e-" in the registers the values will be inversed
+    flag_decoding dw 642Dh ; "d-"
+    flag_error db 'The flag can be -e for encoding or -d for decoding','$'
+    eror_in db 'INPUT file error! Check if the file exists or the filename is correct. Or check the flag!', 13,10,'$'
     eror_out db 'OUTPUT file error! Check if the file exists or the filename is correct. Or check the flag!', 13,10,'$'
-	
-	b64_chars db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', 0h
+    
+    b64_chars db 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', 0h
 
 .code 
 start: 
 ; initialize data
-	MOV AX, @data
-	MOV DS, AX
+    MOV AX, @data
+    MOV DS, AX
 
 ; ====== ENCODE AND DECODE WORKFLOW ======
 
@@ -42,18 +42,18 @@ EncodeMacro MACRO
 
     encode_loop:
 ; read 3 bytes at a time from in_file
-	MOV AH, 3fh
-	MOV BX, hand_in
-	LEA DX, buf
-	MOV CX, 3
-	INT 21h
-	JC NOK
-	MOV OctCit, AX
-	MOV rez_in, 0
-	JMP continue
+    MOV AH, 3fh
+    MOV BX, hand_in
+    LEA DX, buf
+    MOV CX, 3
+    INT 21h
+    JC NOK
+    MOV OctCit, AX
+    MOV rez_in, 0
+    JMP continue
 NOK:
 ; error code in AX
-	MOV rez_in, AX
+    MOV rez_in, AX
 
 continue:
     CMP OctCit, 0 ; check if reached the end of file 
@@ -65,19 +65,19 @@ continue:
     call far ptr add_padding 
 
 continue_no_padding:
-	XOR SI, SI
+    XOR SI, SI
 ; push 4 bytes to stack even though only 3 are needed
 ; because it's a multiple of register size
 encode_prep_stack: 
-	MOV AX, [buf+SI]
+    MOV AX, [buf+SI]
     PUSH AX
-	INC SI 
+    INC SI 
     INC SI
-	
-	CMP SI, 4
-	JE encode_bytes_read
-	
-	LOOP encode_prep_stack
+    
+    CMP SI, 4
+    JE encode_bytes_read
+    
+    LOOP encode_prep_stack
 
 encode_bytes_read: 
 
@@ -99,19 +99,19 @@ encode_bytes_read:
     CMP OctCit, 1
     JNE write
     MOV [buf+2], DX
-	
+    
 write:
-	ScrieInFisier hand_out,buf,OctDeScr,OctScr,rez_out
+    ScrieInFisier hand_out,buf,OctDeScr,OctScr,rez_out
 
     CMP is_final_loop, 0 
     JE encode_over
-	
+    
     JMP encode_loop
 
 encode_over:
-	InchideFisier hand_in,rez_in
-	InchideFisier hand_out, rez_out
-	exit_dos
+    InchideFisier hand_in,rez_in
+    InchideFisier hand_out, rez_out
+    exit_dos
 ENDM    
 
 ; ==============
@@ -119,7 +119,7 @@ ENDM
 DecodeMacro MACRO
 decode_loop:
 
-	CitesteDinFisier hand_in,buf,4,OctCit,rez_in
+    CitesteDinFisier hand_in,buf,4,OctCit,rez_in
 
     CMP OctCit, 0 
     JZ decode_over
@@ -127,9 +127,9 @@ decode_loop:
 ; setup stack for B64Lookup
 ; every word on stack contain one byte for manipulation, discard the other one
 
-	XOR SI, SI
+    XOR SI, SI
 decode_bytes_read:  
-	MOV AX, [buf + SI]
+    MOV AX, [buf + SI]
     PUSH AX
     INC SI
     CMP SI, 4
@@ -156,18 +156,18 @@ decode_bytes_read:
     MOV CX, 3
     SUB CX, padding ; if there were no bytes of padding, we will write 3 bytes
     MOV OctDeScr, cx   
-	
-	ScrieInFisier hand_out,buf,OctDeScr,OctScr,rez_out
-	
-	CMP OctCit, 4
-	JB decode_over
-	
-	JMP decode_loop
+    
+    ScrieInFisier hand_out,buf,OctDeScr,OctScr,rez_out
+    
+    CMP OctCit, 4
+    JB decode_over
+    
+    JMP decode_loop
 
 decode_over:
-	InchideFisier hand_in,rez_in
-	InchideFisier hand_out, rez_out
-	exit_dos
+    InchideFisier hand_in,rez_in
+    InchideFisier hand_out, rez_out
+    exit_dos
 
 ENDM
 
@@ -175,85 +175,85 @@ ENDM
 ; this is where the program execution actually starts
 
 ; read file names from command line 
-	MOV BX, 85h ;85h is where the input filename starts in ES
+    MOV BX, 85h ;85h is where the input filename starts in ES
     XOR AX, AX
-	XOR SI, SI
+    XOR SI, SI
 
 ; put the entire file name in input_file variable char by char until first space    
 input_filename_read_loop: 
     MOV AH, ES:BX
     MOV [input_file + SI], AH
     INC BX
-	INC SI
+    INC SI
     MOV AH, ES:BX
     CMP AH, 20h ; 20h = space 
     JNZ input_filename_read_loop
 
-	MOV input_file[SI], 0h  ; add the string terminator
+    MOV input_file[SI], 0h  ; add the string terminator
 
 ; prepare for output filename read
-	INC BX 
-	XOR SI, SI
+    INC BX 
+    XOR SI, SI
 output_filename_read_loop:
-	MOV AH, ES:BX 
+    MOV AH, ES:BX 
     MOV [output_file + SI], AH
     INC BX
-	INC SI
+    INC SI
     MOV AH, ES:BX
     CMP AH, 3Bh ; ";" marks the end of the output filename
     JNZ output_filename_read_loop
 
-	MOV output_file[SI], 0h ; adds the string terminator	 
-	
+    MOV output_file[SI], 0h ; adds the string terminator     
+    
     DeschideFisier input_file,0,hand_in,rez_in
-	CMP rez_in, 0
-	JNZ eroare_in
-	
-	DeschideFisier output_file,2,hand_out,rez_out
-	CMP rez_out, 0
-	JNZ eroare_out
-	
-	JMP check_flag
-	
+    CMP rez_in, 0
+    JNZ eroare_in
+    
+    DeschideFisier output_file,2,hand_out,rez_out
+    CMP rez_out, 0
+    JNZ eroare_out
+    
+    JMP check_flag
+    
 eroare_in:
-	puts eror_in
-	exit_dos
-	
+    puts eror_in
+    exit_dos
+    
 eroare_out:
-	puts eror_out
-	exit_dos
+    puts eror_out
+    exit_dos
 
 ; check encode or decode flag
 check_flag:
     XOR AX, AX
     MOV BX, 82h
     MOV AX, ES:BX ; move user flag input to AX register
-	; the values are inversed: first it's the letter, then the "-"
+    ; the values are inversed: first it's the letter, then the "-"
 
     MOV DX, flag_decoding
     CMP DX, AX 
     JE set_decode 
-	JMP check_encode ; skip decoding and continue to check if the encoding flag was used
-	; otherwise run the following decoding instructions
-	
+    JMP check_encode ; skip decoding and continue to check if the encoding flag was used
+    ; otherwise run the following decoding instructions
+    
 set_decode:
     MOV OctDeCit, 4
     MOV OctDeScr, 3
-    DecodeMacro	
-	
-check_encode:	
-	MOV DX, flag_encoding
-	CMP DX, AX
-	JZ set_encode
-	JMP finish ; if the flag was neither the encoding or the decoding one
+    DecodeMacro    
+    
+check_encode:    
+    MOV DX, flag_encoding
+    CMP DX, AX
+    JZ set_encode
+    JMP finish ; if the flag was neither the encoding or the decoding one
 
 set_encode:
-	EncodeMacro	
-	
+    EncodeMacro    
+    
 ; if the flag was not set correctly by the user, print a message and exit the program
-finish:	
-	puts flag_error
-	exit_dos
+finish:    
+    puts flag_error
+    exit_dos
 
 ; ====== PROCEDURES ======
 
@@ -286,8 +286,8 @@ encoding_procedure PROC FAR
     PUSH BP
     MOV BP, SP
 
-	XOR AX, AX
-	XOR BX, BX
+    XOR AX, AX
+    XOR BX, BX
 
 ; shift bytes with regard to adding 2 extra bits to their left
 ; AND with mask to get B64 corresponding index
@@ -299,7 +299,7 @@ encoding_procedure PROC FAR
     MOV CL, 10  
     SHR AX, CL      
     AND AX, 63
-	PUSH AX ; 1st byte
+    PUSH AX ; 1st byte
 
     MOV AX, [BP + 8]   
     MOV DL, AH
@@ -309,7 +309,7 @@ encoding_procedure PROC FAR
     MOV CL, 4
     SHR AX, CL
     AND AX, 63
-	PUSH AX ; 2nd byte
+    PUSH AX ; 2nd byte
 
     MOV AX, [BP + 8] 
     MOV DL, AH
@@ -324,7 +324,7 @@ encoding_procedure PROC FAR
     AND AX, 60
     ADD AX, BX
     AND AX, 63
-	PUSH AX ; 3rd byte
+    PUSH AX ; 3rd byte
 
     MOV AX, [BP + 8] 
     MOV DL, AH
@@ -332,7 +332,7 @@ encoding_procedure PROC FAR
     MOV AX, DX    
     MOV BX, [BP + 6] 
     AND BX, 63
-	PUSH BX ; 4th byte
+    PUSH BX ; 4th byte
 
     POP DX ; 4th byte
     POP CX ; 3rd byte
